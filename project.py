@@ -86,13 +86,17 @@ def showItem(item_id):
 # Edit Item
 @app.route('/item/<int:item_id>/edit/', methods=['GET', 'POST'])
 def editItem(item_id):
+    if 'username' not in login_session:
+        return redirect('/login')
+
     editedItem = session.query(Item).filter_by(id=item_id).one()
     categories = session.query(Category)
 
-    if 'username' not in login_session:
-        return redirect('/login')
     if editedItem.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You are not authorized to edit this restaurant. Please create your own restaurant in order to edit.');}</script><body onload='myFunction()''>"
+        return """
+        <script>function myFunction() {alert('You are not authorized to edit
+         this restaurant. Please create your own restaurant in
+          order to edit.');}</script><body onload='myFunction()''>"""
     if request.method == 'POST':
         if request.form['name']:
             editedItem.name = request.form['name']
@@ -110,12 +114,16 @@ def editItem(item_id):
 # Delete item
 @app.route('/item/<int:item_id>/delete/', methods=['GET', 'POST'])
 def deleteItem(item_id):
-    deleteItem = session.query( Item).filter_by(id=item_id).one()
    
     if 'username' not in login_session:
         return redirect('/login')
+   
+    deleteItem = session.query( Item).filter_by(id=item_id).one()
     if deleteItem.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You are not authorized to delete this item. Please create your own item in order to delete.');}</script><body onload='myFunction()''>"
+        return """<script>function myFunction() 
+        {alert('You are not authorized to delete this item.
+         Please create your own item in order to delete.');}
+         </script><body onload='myFunction()''> """
     
     if request.method == 'POST':
         session.delete(deleteItem)
@@ -209,8 +217,7 @@ def gconnect():
     # Store the access token in the session for later use.
     login_session['access_token'] = credentials.access_token
     login_session['gplus_id'] = gplus_id
-    login_session['credentials'] = credentials
-
+   
     # Get user info
     userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
     params = {'access_token': credentials.access_token, 'alt': 'json'}
@@ -272,7 +279,7 @@ def disconnect():
         if login_session['provider'] == 'google':
             gdisconnect()
             del login_session['gplus_id']
-            del login_session['credentials']
+            del login_session['access_token']
         del login_session['username']
         del login_session['email']
         del login_session['picture']
@@ -294,13 +301,12 @@ def disconnect():
 @app.route('/gdisconnect')
 def gdisconnect():
     # Only disconnect a connected user.
-    credentials = login_session.get('credentials')
-    if credentials is None:
+    if login_session['access_token'] is None:
         response = make_response(
             json.dumps('Current user not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    access_token = credentials.access_token
+    access_token = login_session['access_token']
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
