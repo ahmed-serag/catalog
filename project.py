@@ -1,4 +1,3 @@
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Base, Category, Item, User
@@ -11,20 +10,19 @@ import httplib2
 import json
 from flask import make_response
 import requests
+from flask import Flask, render_template, request, redirect,
+jsonify, url_for, flash
 
 app = Flask(__name__)
-
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "Restaurant Menu Application"
-
-
 # Connect to Database and create database session
 engine = create_engine('sqlite:///itemscatalog.db')
 Base.metadata.bind = engine
-
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
+
 
 # Show all items
 @app.route('/')
@@ -33,11 +31,14 @@ def showItems():
     items = session.query(Item).order_by(asc(Item.name))
     categories = session.query(Category).order_by(asc(Category.name))
     if 'username' not in login_session:
-        return render_template('publicItems.html', items=items, categories = categories)
+        return render_template('publicItems.html',
+             items=items, categories=categories)
     else:
-        return render_template('items.html', items=items, categories = categories)
+        return render_template('items.html',
+             items=items, categories=categories)
 
-#Add new Category
+
+# Add new Category
 @app.route('/category/new/', methods=['GET', 'POST'])
 def newCategory():
     if 'username' not in login_session:
@@ -52,35 +53,39 @@ def newCategory():
     else:
         return render_template('newCategory.html')
 
-#add new item
+
+# add new item
 @app.route('/item/new/', methods=['GET', 'POST'])
 def newItem():
     if 'username' not in login_session:
         return redirect('/login')
     if request.method == 'POST':
         newItem = Item(
-            name=request.form['name'], category_id =request.form['category'], description =request.form['description'], 
-            user_id = login_session.get('user_id'))
+            name=request.form['name'], category_id=request.form['category'],
+            description=request.form['description'], 
+            user_id=login_session.get('user_id'))
         session.add(newItem)
         flash('New Item %s Successfully Added' % newItem.name)
         session.commit()
         return redirect(url_for('showItems'))
     else:
         categories = session.query(Category)
-        return render_template('newItem.html', categories = categories)
+        return render_template('newItem.html', categories=categories)
 
-#show item details
+
+# show item details
 @app.route('/item/<int:item_id>/')
 def showItem(item_id):
     item = session.query(Item).filter_by(id=item_id).one()
     category = session.query(Category).filter_by(id=item.category_id).one()
-    user = getUserInfo(item.user_id);
-    if 'username' not in login_session or item.user_id != login_session['user_id']:
-        return render_template('publicmenu.html', item = item, category = category, user = user)
+    user = getUserInfo(item.user_id)
+    if 'username' not in login_session or
+        item.user_id != login_session['user_id']:
+        return render_template('publicmenu.html', item=item,
+         category=category, user=user)
     else:
-        return render_template('menu.html', item = item, category = category, user = user)
-
-
+        return render_template('menu.html', item=item,
+         category=category, user=user)
 
 
 # Edit Item
@@ -91,7 +96,6 @@ def editItem(item_id):
 
     editedItem = session.query(Item).filter_by(id=item_id).one()
     categories = session.query(Category)
-
     if editedItem.user_id != login_session['user_id']:
         return """
         <script>function myFunction() {alert('You are not authorized to edit
@@ -106,33 +110,32 @@ def editItem(item_id):
             flash('Item Successfully Edited %s' % editedItem.name)
             return redirect(url_for('showItems'))
     else:
-        return render_template('editItem.html', item=editedItem, categories = categories)
-
-
+        return render_template('editItem.html', item=editedItem,
+            categories=categories)
 
 
 # Delete item
 @app.route('/item/<int:item_id>/delete/', methods=['GET', 'POST'])
 def deleteItem(item_id):
-   
     if 'username' not in login_session:
         return redirect('/login')
-   
-    deleteItem = session.query( Item).filter_by(id=item_id).one()
+    deleteItem = session.query(Item).filter_by(id=item_id).one()
     if deleteItem.user_id != login_session['user_id']:
-        return """<script>function myFunction() 
+        return """
+        <script>function myFunction() 
         {alert('You are not authorized to delete this item.
          Please create your own item in order to delete.');}
-         </script><body onload='myFunction()''> """
-    
+         </script><body onload='myFunction()''> 
+         """
     if request.method == 'POST':
         session.delete(deleteItem)
         session.commit()
         flash('%s Successfully Deleted' % deleteItem.name)
         session.commit()
         return redirect(url_for('showItems'))
-    
+
     return render_template('deleteItem.html', item=deleteItem)
+
 
 # JSON APIs to view Items
 @app.route('/items/JSON')
@@ -140,12 +143,12 @@ def itemsJSON():
     items = session.query(Item).all()
     return jsonify(items=[i.serialize for i in items])
 
+
 # JSON APIs to view categories
 @app.route('/categories/JSON')
 def categoriesJSON():
     categories = session.query(Category).all()
     return jsonify(categories=[c.serialize for c in categories])
-
 
 
 # Create anti-forgery state token
@@ -156,6 +159,7 @@ def showLogin():
     login_session['state'] = state
     # return "The current session state is %s" % login_session['state']
     return render_template('login.html', STATE=state)
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -209,7 +213,7 @@ def gconnect():
     stored_credentials = login_session.get('credentials')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_credentials is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
+        response = make_response(json.dumps('Current user already connected.'),
                                  200)
         response.headers['Content-Type'] = 'application/json'
         return response
@@ -217,14 +221,11 @@ def gconnect():
     # Store the access token in the session for later use.
     login_session['access_token'] = credentials.access_token
     login_session['gplus_id'] = gplus_id
-   
     # Get user info
     userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
     params = {'access_token': credentials.access_token, 'alt': 'json'}
     answer = requests.get(userinfo_url, params=params)
-
     data = answer.json()
-
     login_session['username'] = data['name']
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
@@ -236,14 +237,14 @@ def gconnect():
     if not user_id:
         user_id = createUser(login_session)
     login_session['user_id'] = user_id
-
     output = ''
     output += '<h1>Welcome, '
     output += login_session['username']
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' " style="width: 300px; height: 300px;border-radius: 150px;'
+    output += '-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
@@ -272,6 +273,7 @@ def getUserID(email):
     except:
         return None
 
+
 # DISCONNECT - Revoke a current user's token and reset their login_session
 @app.route('/disconnect')
 def disconnect():
@@ -292,12 +294,6 @@ def disconnect():
         return redirect(url_for('showItems'))
 
 
-
-
-
-
-
-
 @app.route('/gdisconnect')
 def gdisconnect():
     # Only disconnect a connected user.
@@ -316,8 +312,6 @@ def gdisconnect():
             json.dumps('Failed to revoke token for given user.'), 400)
         response.headers['Content-Type'] = 'application/json'
         return response
-
-
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
