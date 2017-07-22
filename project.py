@@ -15,7 +15,8 @@ from flask import Flask
 from flask import render_template
 from flask import request
 from flask import redirect
-jsonify, url_for, flash
+from flask import url_for
+from flask import flash
 
 app = Flask(__name__)
 CLIENT_ID = json.loads(
