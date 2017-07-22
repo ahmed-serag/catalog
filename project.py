@@ -79,8 +79,7 @@ def showItem(item_id):
     item = session.query(Item).filter_by(id=item_id).one()
     category = session.query(Category).filter_by(id=item.category_id).one()
     user = getUserInfo(item.user_id)
-    if 'username' not in login_session or
-        item.user_id != login_session['user_id']:
+    if 'username' not in login_session or item.user_id != login_session['user_id']:
         return render_template('publicmenu.html', item=item,
          category=category, user=user)
     else:
