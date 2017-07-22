@@ -10,7 +10,10 @@ import httplib2
 import json
 from flask import make_response
 import requests
-from flask import Flask, render_template, request, redirect,
+from flask import Flask
+from flask import render_template
+from flask import request
+from flask import redirect
 jsonify, url_for, flash
 
 app = Flask(__name__)
